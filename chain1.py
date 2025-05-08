@@ -1,6 +1,7 @@
 from langchain_huggingface import HuggingFaceEndpoint,ChatHuggingFace
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain.schema.runnable import RunnableSequence
 
 parser=StrOutputParser()
 
@@ -23,5 +24,8 @@ template2=PromptTemplate(
 model=ChatHuggingFace(llm=llm)
 
 chain = template | model | parser | template2 | model | parser
+
+# chain_r=RunnableSequence(template, model, parser, template2, model, parser)
+
 ans=chain.invoke({"topic":"europe"})
 print(ans)
