@@ -1,5 +1,5 @@
 # First install required packages:
-# pip install -U langchain transformers torch sentence-transformers faiss-cpu
+# pip install -U langchain transformers torch sentence-transformers faiss-cpu accelerate
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -28,19 +28,26 @@ embedding_model = HuggingFaceEmbeddings(
 # 4. Create FAISS vectorstore
 vectorstore = FAISS.from_documents(documents, embedding_model)
 
-# 5. Load FREE model locally (no API calls)
-model_id = "mistralai/Mistral-7B-Instruct-v0.1"  # Free model
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto")
+# 5. Load smaller model locally (phi-2 - 2.7B parameters)
+model_id = "microsoft/phi-2"  # Much smaller than Mistral-7B
+tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_id, 
+                                           trust_remote_code=True,
+                                           torch_dtype="auto",
+                                           device_map="auto")
 
 pipe = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    max_new_tokens=512,
-    temperature=0.1,
-    device_map="auto"  # Uses GPU if available
+    max_new_tokens=256,  # reduced token output for speed
+    temperature=0.7,
+    do_sample=True,      # enables faster + more natural sampling
+    top_k=50,            # limit sampling to top 50 likely tokens
+    top_p=0.95,          # nucleus sampling
+    device_map="auto"
 )
+
 
 llm = HuggingFacePipeline(pipeline=pipe)
 
